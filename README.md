@@ -114,17 +114,17 @@ b. Build and Push the Docker Images
 Next, build the Docker images for the application and the OpenTelemetry collector and push them to the Artifact Registry.
 
 # Build the application image
-docker build -t run-java-spanner-demo .
+docker build -t run-java-spanner-demo:latest .
 
 # Build the collector image
 docker build -t otel-collector ./otelcollector
 
 # Tag the images to match the repository name
-docker tag run-java-spanner-demo europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/run-java-spanner-demo
+docker tag run-java-spanner-demo:latest europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/run-java-spanner-demo:latest
 docker tag otel-collector europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/otel-collector
 
 # Push the images to Artifact Registry
-docker push europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/run-java-spanner-demo
+docker push europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/run-java-spanner-demo:latest
 docker push europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/otel-collector
 
 c. Deploy to Cloud Run
@@ -132,3 +132,34 @@ Finally, deploy the service to Cloud Run using the provided `cloud-run.yaml` fil
 
 # Deploy the service
 gcloud run services replace cloud-run.yaml --region=europe-west1 --allow-unauthenticated
+
+5. Using the Web Endpoints
+The application now exposes several web endpoints. You can access them using the service URL provided by Cloud Run after deployment (e.g., `https://run-java-spanner-demo-xxxxxxxxxx-ew.a.run.app`).
+
+Here are the available paths and example `curl` commands:
+
+*   **Health Check:** Returns "OK".
+    ```bash
+    curl YOUR_CLOUD_RUN_URL/
+    ```
+
+*   **Get All Singers:** Returns a JSON array of all singers.
+    ```bash
+    curl YOUR_CLOUD_RUN_URL/singers
+    ```
+
+*   **Get Random Singer:** Returns a JSON object of a random singer.
+    ```bash
+    curl YOUR_CLOUD_RUN_URL/singers/random
+    ```
+
+*   **Get Singer by ID:** Returns a JSON object for a specific singer. Replace `{id}` with an actual singer ID (e.g., `318619242922318`).
+    ```bash
+    curl YOUR_CLOUD_RUN_URL/singers/{id}
+    ```
+
+6. Verifying OpenTelemetry Traces
+After making requests to the web endpoints, you can verify the end-to-end tracing in Google Cloud Trace:
+
+*   Go to **Trace > Trace explorer** in the Google Cloud Console.
+*   You should see traces for each web request. Each trace will have a parent span for the incoming HTTP request (named after the path, e.g., `/singers/random`) and a child span for the Spanner database query (e.g., `get-random-singer`). This allows you to follow the entire request flow from the web to the database.
