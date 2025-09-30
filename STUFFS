@@ -1,0 +1,9 @@
+export GCP_PROJECT=$(gcloud config get-value project)
+export SPANNER_INSTANCE_ID="demo-instance"
+export SPANNER_DATABASE_ID="demo-db"
+
+# Other OTEL variables from the README
+export OTEL_SERVICE_NAME="run-java-spanner-demo"
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+export OTEL_METRICS_EXPORTER="otlp"
+export OTEL_LOGS_EXPORTER="otlp"

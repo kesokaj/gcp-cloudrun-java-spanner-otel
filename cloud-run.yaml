@@ -1,0 +1,68 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: run-java-spanner-demo # The name of your Cloud Run service
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+    run.googleapis.com/ingress: "all"
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/container-dependencies: '{"run-java-spanner-demo":["otel-collector"]}'
+    spec:
+      containers:
+        - image: europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/run-java-spanner-demo:latest # <-- IMPORTANT: This will be replaced by gcloud during build
+          name: run-java-spanner-demo
+          ports:
+            - containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          env:
+            - name: GCP_PROJECT
+              value: "huge-pika-e1h9"
+            - name: SPANNER_INSTANCE_ID
+              value: "demo-instance"
+            - name: SPANNER_DATABASE_ID
+              value: "demo-db"
+            - name: OTEL_SERVICE_NAME
+              value: "run-java-spanner-demo"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://127.0.0.1:4317"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"
+            - name: OTEL_LOGS_EXPORTER
+              value: "otlp"
+            - name: OTEL_EXPORTER_OTLP_TIMEOUT
+              value: "60000"
+            - name: OTEL_PROPAGATORS
+              value: "tracecontext,b3"
+            - name: LATENCY_FREQUENCY
+              value: "0.5"
+            - name: LOG_PATH
+              value: /logging/app.log
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          volumeMounts:
+            - name: logging-volume
+              mountPath: /logging
+        - image: europe-west1-docker.pkg.dev/huge-pika-e1h9/apps/otel-collector-java # Use a specific version for stability
+          name: otel-collector
+          args: ["--config=/etc/otelcol-contrib/config.yaml"]
+          startupProbe:
+            tcpSocket:
+              port: 13133
+          volumeMounts:
+            - name: logging-volume
+              mountPath: /logging
+      volumes:
+        - name: logging-volume
+          emptyDir: {}
